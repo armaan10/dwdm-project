@@ -80,7 +80,7 @@ class Net(Module):
             MaxPool2d(kernel_size=3, stride=2),
             )
 		self.linear_layers= Sequential(
-			Linear(128*16*16, 256),
+			Linear(10368, 256),
 			ReLU(inplace=True),
 			Linear(256,1),
 			)
@@ -96,15 +96,15 @@ print(model)
 criterion = BCEWithLogitsLoss()
 optimizer = Adam(model.parameters(), lr=0.001)
 model.train()
+acc=1
 train_loss=[]
-for i in range(1,101):
+for i in range(1,100):
 	
 	x_train,y_train=x_train.to(device),y_train.to(device)
 	optimizer.zero_grad()
 	y_pred=model(x_train)
-	loss=criterion(y_pred, y_train.unsqueeze(1))
- 	#acc = binary_acc(y_pred, y_batch.unsqueeze(1))
-
+	loss=criterion(y_pred.float(), y_train.unsqueeze(1).float())
+  #acc = binary_acc(y_pred, y_batch.unsqueeze(1))
 	loss.backward()
 	optimizer.step()
 
@@ -114,12 +114,15 @@ for i in range(1,101):
 	if i%2 == 0:
 	# printing the train loss
 		print('Epoch : ',i, '\t', 'loss :', epoch_loss)
-
-plt.plot(train_losses, label='Training loss')
-plt.legend()
-plt.show()
-
+#print("Accuracy",acc.item())
+#plt.plot(train_loss, label='Training loss')
+#plt.legend()
+#plt.show()
 model.eval()
-preds=model(x_train)
-preds=preds>0.5
-print(accuracy_score(y_train,preds))
+x_val=x_val.to(device)
+y_val=y_val.to(device)
+preds=model(x_val)
+print("Binary acc",binary_acc(preds,y_val.unsqueeze(1)).item())
+preds=preds.cpu()
+preds=preds.detach().numpy()>0.5
+print(accuracy_score(y_val.cpu(),preds))
