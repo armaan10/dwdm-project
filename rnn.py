@@ -13,16 +13,20 @@ for i in os.listdir(path):
 		df_op=pd.read_csv(os.path.join(path,i))
 	else:
 		df_ips.append(pd.read_csv(os.path.join(path,i)))
+		
 ip_set=df_ips[0]
 
-#print(ip_set.iloc[0])
+
+
 for i in range (len(df_ips)):
 	if i==0:
 		continue
-	ip_set=pd.merge(ip_set,df_ips[i],on="Time (sec)",how='inner')
+	ip_set=pd.merge(ip_set,df_ips[i],how='inner')
 
+	#print (ip_set)
 
-print(df_op)
+print(ip_set.iloc[0])
+#print(df_op)
 
 class LSTMModel(nn.Module):
 	def __init__(self, input_dim, hidden_dim, num_layers, output_dim):
