@@ -63,13 +63,21 @@ class LSTMModel(nn.Module):
 #Define loss and optimiser
 #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #model = LSTMModel.to(device)
-labels=df_op.to_numpy()
-train_data=ip_set.to_numpy()
+val_data=ip_set[3145:3594].to_numpy()
+val_labels=df_op[3145:3594].to_numpy()
+test_data=ip_set[3594:].to_numpy()
+test_labels=df_op[3594:].to_numpy()
+train_labels=df_op.iloc[0:3145].to_numpy()
+train_data=ip_set.iloc[0:3145].to_numpy()
 
-train=TensorDataset(torch.from_numpy(train_data),torch.from_numpy(labels))
 
-train_loader = DataLoader(train, batch_size = 32, shuffle = False) 
-print(train_data.shape,labels.shape)
+train=TensorDataset(torch.from_numpy(train_data),torch.from_numpy(train_labels))
+val=TensorDataset(torch.from_numpy(val_data),torch.from_numpy(val_labels))
+train_dataloader = DataLoader(train, batch_size = 32, shuffle = False)
+val_dataloader = DataLoader(val, batch_size = 32, shuffle = False) 
+
+
+print(train_data.shape,train_labels.shape)
 criterion = nn.MSELoss()
 
 def train_model(model, epochs=10, lr = 0.01):
