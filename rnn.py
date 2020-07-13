@@ -3,7 +3,26 @@ import torch.nn as nn
 import torch.nn.functional as F
 import pandas as pd
 import numpy as np
+import os
 import matplotlib.pyplot as plt
+df_ips=[]
+df_op=1
+path="/home/armaan/Downloads/Data_Set"
+for i in os.listdir(path):
+	if i=="Control_Link_Angles.csv":
+		df_op=pd.read_csv(os.path.join(path,i))
+	else:
+		df_ips.append(pd.read_csv(os.path.join(path,i)))
+ip_set=df_ips[0]
+
+#print(ip_set.iloc[0])
+for i in range (len(df_ips)):
+	if i==0:
+		continue
+	ip_set=pd.merge(ip_set,df_ips[i],on="Time (sec)",how='inner')
+
+
+print(df_op)
 
 class LSTMModel(nn.Module):
 	def __init__(self, input_dim, hidden_dim, num_layers, output_dim):
@@ -29,8 +48,8 @@ class LSTMModel(nn.Module):
 		# out.size() --> 100, 10
 		return out
 #Define loss and optimiser
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = LSTMModel.to(device)
+#device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+#model = LSTMModel.to(device)
 criterion = nn.MSELoss()
 
 def train_model(model, epochs=10, lr = 0.01):
