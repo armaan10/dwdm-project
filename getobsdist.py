@@ -1,8 +1,8 @@
 import pandas as pd 
 import numpy as np
 df=pd.read_csv("/home/armaan/Downloads/Data_Set/Rover_Displacement.csv")
-obs=[0,2000,3700,5300,7000,7500,11700,13700,13710]
-heights=[[0,0],[150,150],[0,150],[150,0],[0,150],[150,0],[200,200],[150,150],[150,150]]
+obs=[0,2000,2200,3900,4100,5700,5900,7600,9000,9500,10900,15100,17100,19100,19400,19710,20010]
+heights=[[-850,-850],[15,15],[-15,-15],[0,15],[0,-15],[15,0],[-15,0],[0,15],[0,-15],[15,0],[-15,0],[20,20],[-504.02,-504.02],[15,15],[-15,-15],[15,15],[-15,-15]]
 dist_frames=[]
 last_index=[0]
 heights_df=np.zeros((4494,2))
@@ -22,10 +22,7 @@ for i in dist_frames:
 #res_df['Linear Displacement1 (mm)'].iloc[0:280]=dist_frames[0]['Linear Displacement1 (mm)'].iloc[0:280]*0
 #adding all object distances to res_df
 for i in range(len(last_index)-1):
-	if i==0:
-		res_df['Linear Displacement1 (mm)'].iloc[last_index[i]:last_index[i+1]]=(dist_frames[i]['Linear Displacement1 (mm)'].iloc[last_index[i]:last_index[i+1]]*0)
-		#print(dist_frames[i]['Linear Displacement1 (mm)'].iloc[i:i+1])
-	else:
+
 		res_df['Linear Displacement1 (mm)'].iloc[last_index[i]:last_index[i+1]]=dist_frames[i]['Linear Displacement1 (mm)'].iloc[last_index[i]:last_index[i+1]]
 res_df['Linear Displacement1 (mm)'].iloc[last_index[len(last_index)-1]:]=0
 for i in range(len(last_index)-1):
