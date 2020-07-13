@@ -5,27 +5,36 @@ import pandas as pd
 import numpy as np
 import os
 import matplotlib.pyplot as plt
+from torch.utils.data import DataLoader, TensorDataset
 df_ips=[]
 df_op=1
 path="/home/armaan/Downloads/Data_Set"
+ind_df=np.zeros((4494,1))
+for i in range(0,4494):
+	ind_df[i,0]=i
+ind_df=pd.DataFrame({'Index':ind_df[:,0]})
 for i in os.listdir(path):
-	if i=="Control_Link_Angles.csv":
-		df_op=pd.read_csv(os.path.join(path,i))
-	else:
-		df_ips.append(pd.read_csv(os.path.join(path,i)))
+	if ".csv" in i:
+		if i=="Control_Link_Angles.csv":
+			df_op=pd.read_csv(os.path.join(path,i))
+		else:
+			df_ips.append(pd.read_csv(os.path.join(path,i)).drop(['Time (sec)'],axis=1).join(ind_df))
+
 		
 ip_set=df_ips[0]
-
+print(ind_df)
 
 
 for i in range (len(df_ips)):
 	if i==0:
 		continue
-	ip_set=pd.merge(ip_set,df_ips[i],how='inner')
+	ip_set=pd.merge(ip_set,df_ips[i],on='Index',how='inner')
 
 	#print (ip_set)
-
-print(ip_set.iloc[0])
+#ip_set=ip_set.drop(['Time (sec)'],axis=1)
+df_op=df_op.drop(['Time (sec)'],axis=1)
+ip_set=ip_set.drop(['Index'],axis=1)
+#print(ip_set.iloc[0])
 #print(df_op)
 
 class LSTMModel(nn.Module):
@@ -54,6 +63,13 @@ class LSTMModel(nn.Module):
 #Define loss and optimiser
 #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 #model = LSTMModel.to(device)
+labels=df_op.to_numpy()
+train_data=ip_set.to_numpy()
+
+train=TensorDataset(torch.from_numpy(train_data),torch.from_numpy(labels))
+
+train_loader = DataLoader(train, batch_size = 32, shuffle = False) 
+print(train_data.shape,labels.shape)
 criterion = nn.MSELoss()
 
 def train_model(model, epochs=10, lr = 0.01):
