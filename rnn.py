@@ -34,7 +34,7 @@ class LSTMModel(nn.Module):
 		# out.size() --> 100, 10
 		return out
 
-def train_model(model, epochs=10, lr = 0.01):
+def train_model(model, epochs=1000, lr = 0.01):
 	loss_values = []
 	val_loss_values = []
 	parameters = filter(lambda p: p.requires_grad, model.parameters())
@@ -58,7 +58,7 @@ def train_model(model, epochs=10, lr = 0.01):
 		val_loss = validation_metrics(model, val_dataloader)
 		val_loss_values.append(val_loss)
 		if e%5 == 0:
-			print("Train mse: %.3f Val mse %.3f" %(epoch_loss, val_loss))
+			print("Train mse: %.3f Val mse: %.3f Epoch No: %i" %(epoch_loss, val_loss, e))
 			#torch.save({
 			#	'epoch': e,
 			#	'model_state_dict': model.state_dict(),
@@ -140,6 +140,6 @@ if __name__ == "__main__":
 	print(train_data.shape,train_labels.shape)
 	#Define loss and pass model to device
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-	model = LSTMModel(11, 20, 1, 4).to(device)
+	model = LSTMModel(11, 50, 20, 4).to(device)
 	criterion = nn.MSELoss()
 	train_model(model)
