@@ -58,10 +58,10 @@ class LSTMModel(nn.Module):
 		h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_dim).requires_grad_()
 		c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_dim).requires_grad_()
 		#h0=torch.reshape(h0,(self.num_layers,32,self.hidden_dim))
-		print(h0.size())
+		#print(h0.size())
 		lstm_out, (ht,ct) = self.lstm(x,(h0,c0))
 		#only last time step??        
-		out = self.fc(ht, 4) 
+		out = self.fc(lstm_out) 
 		# out.size() --> 100, 10
 		return out
 #Define loss and optimiser
@@ -92,7 +92,7 @@ test_data, val_data, test_labels, val_labels = train_test_split(test_data_temp,t
 train=TensorDataset(torch.from_numpy(train_data),torch.from_numpy(train_labels))
 val=TensorDataset(torch.from_numpy(val_data),torch.from_numpy(val_labels))
 train_dataloader = DataLoader(train, batch_size = 32, shuffle = False)
-val_dataloader = DataLoader(val, batch_size = 32, shuffle = False) 
+valid_dataloader = DataLoader(val, batch_size = 32, shuffle = False) 
 
 
 #print(train_data.shape,train_labels.shape)
@@ -108,7 +108,7 @@ def train_model(model, epochs=10, lr = 0.01):
 		running_loss = 0.0
 		total = 0
 		for x, y in train_dataloader:
-			x = x.long()
+			x = x.float()
 			y = y.float() 
 			#print(x.size(),x.unsqueeze(2).size())
 			y_pred = model(x)
@@ -123,14 +123,14 @@ def train_model(model, epochs=10, lr = 0.01):
 		val_loss = validation_metrics(model, valid_dataloader)
 		val_loss_values.append(val_loss)
 		if e%5 == 0:
-			print("Train mse: %.3f Val mse %.3f" %(epoch_loss, val_loss))
+			print("Train mse: %.3f " %(epoch_loss))
 			#torch.save({
 			#	'epoch': e,
 			#	'model_state_dict': model.state_dict(),
 			#	'optimizer_state_dict': optimiser.state_dict(),
 			#	'loss': epoch_loss,
 			#}, '<path>'+str(e)+'.pth.tar')
-	plt.plot(epoch_loss)
+	plt.plot(loss_values)
 	plt.plot(val_loss_values, color = 'orange')
 	plt.show()
 		
@@ -138,10 +138,10 @@ def validation_metrics(model, valid_dataloader):
 	model.eval()
 	running_loss = 0.0
 	total = 0
-	for x, y, l in valid_dataloader:
-		x = x.long()
+	for x, y in valid_dataloader:
+		x = x.float()
 		y = y.float()
-		y_pred = model(x, l)
+		y_pred = model(x)
 		loss = criterion(y_pred, y)
 		total+=y.size(0)
 		running_loss = loss.item()*y.size(0)
