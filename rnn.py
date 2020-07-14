@@ -65,7 +65,7 @@ def train_model(model, epochs=10, lr = 0.01):
 			#	'optimizer_state_dict': optimiser.state_dict(),
 			#	'loss': epoch_loss,
 			#}, '<path>'+str(e)+'.pth.tar')
-	plt.plot(epoch_loss)
+	plt.plot(loss_values, color = 'blue')
 	plt.plot(val_loss_values, color = 'orange')
 	plt.show()
 		
