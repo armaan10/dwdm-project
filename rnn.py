@@ -6,6 +6,7 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader, TensorDataset
+from sklearn.model_selection import train_test_split
 df_ips=[]
 df_op=1
 path="/home/armaan/Downloads/Data_Set"
@@ -22,7 +23,7 @@ for i in os.listdir(path):
 
 		
 ip_set=df_ips[0]
-print(ind_df)
+#print(ind_df)
 
 
 for i in range (len(df_ips)):
@@ -34,7 +35,7 @@ for i in range (len(df_ips)):
 #ip_set=ip_set.drop(['Time (sec)'],axis=1)
 df_op=df_op.drop(['Time (sec)'],axis=1)
 ip_set=ip_set.drop(['Index'],axis=1)
-#print(ip_set.iloc[0])
+print(ip_set)
 #print(df_op)
 
 class LSTMModel(nn.Module):
@@ -47,28 +48,45 @@ class LSTMModel(nn.Module):
 		# Building your LSTM
 		# (batch_dim, seq_dim, input_dim) o/p dim
 		# batch_dim = number of samples per batch
-		self.lstm = nn.LSTM(input_dim, hidden_dim, num_layers, batch_first=True, nonlinearity='relu')
+		self.lstm = nn.LSTM(input_dim, hidden_dim, num_layers, batch_first=True)
 		# last layer
 		self.fc = nn.Linear(hidden_dim, output_dim)
 
-	def forward(self, x, l):
+	def forward(self, x):
 
 		# (layer_dim, batch_size, hidden_dim)
 		h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_dim).requires_grad_()
-		lstm_out, (ht,ct) = self.lstm(x, h0.detach())
+		c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_dim).requires_grad_()
+		#h0=torch.reshape(h0,(self.num_layers,32,self.hidden_dim))
+		print(h0.size())
+		lstm_out, (ht,ct) = self.lstm(x,(h0,c0))
 		#only last time step??        
 		out = self.fc(ht, 4) 
 		# out.size() --> 100, 10
 		return out
 #Define loss and optimiser
-#device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-#model = LSTMModel.to(device)
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model=LSTMModel(11,50,3,4)
+model.to(device)
+dataset=ip_set.to_numpy()
+dataset=dataset.reshape((107,42,11))
+df_op=df_op.to_numpy()
+df_op=df_op.reshape((107,42,4))
+print(dataset.shape)
+
+"""
 val_data=ip_set[3145:3594].to_numpy()
 val_labels=df_op[3145:3594].to_numpy()
 test_data=ip_set[3594:].to_numpy()
 test_labels=df_op[3594:].to_numpy()
 train_labels=df_op.iloc[0:3145].to_numpy()
 train_data=ip_set.iloc[0:3145].to_numpy()
+"""
+train_data, test_data_temp, train_labels, test_label_temp = train_test_split(dataset,df_op,test_size = 0.3)
+
+test_data, val_data, test_labels, val_labels = train_test_split(test_data_temp,test_label_temp,test_size = 0.25)
+
+                                                                              
 
 
 train=TensorDataset(torch.from_numpy(train_data),torch.from_numpy(train_labels))
@@ -77,22 +95,23 @@ train_dataloader = DataLoader(train, batch_size = 32, shuffle = False)
 val_dataloader = DataLoader(val, batch_size = 32, shuffle = False) 
 
 
-print(train_data.shape,train_labels.shape)
+#print(train_data.shape,train_labels.shape)
 criterion = nn.MSELoss()
 
 def train_model(model, epochs=10, lr = 0.01):
 	loss_values = []
 	val_loss_values = []
-	parameters = filter(lambda p: p.requires_grad(), model.parameters())
+	parameters = filter(lambda p: p.requires_grad, model.parameters())
 	optimiser = torch.optim.Adam(parameters, lr, betas=(0.9,0.99))
 	for e in range(epochs):
 		model.train()
 		running_loss = 0.0
 		total = 0
-		for x, y, l in train_dataloader:
+		for x, y in train_dataloader:
 			x = x.long()
 			y = y.float() 
-			y_pred = model(x,l)
+			#print(x.size(),x.unsqueeze(2).size())
+			y_pred = model(x)
 			optimiser.zero_grad()
 			loss = criterion(y_pred, y)
 			loss.backward()
@@ -127,3 +146,4 @@ def validation_metrics(model, valid_dataloader):
 		total+=y.size(0)
 		running_loss = loss.item()*y.size(0)
 		return running_loss/total
+train_model(model)
