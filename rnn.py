@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import os
 import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
 from torch.utils.data import DataLoader, TensorDataset
 from sklearn.model_selection import train_test_split
 df_ips=[]
@@ -66,9 +67,12 @@ class LSTMModel(nn.Module):
 		return out
 #Define loss and optimiser
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model=LSTMModel(11,50,3,4)
+model=LSTMModel(11,250,10,4)
 model.to(device)
 dataset=ip_set.to_numpy()
+scaler = StandardScaler()
+scaler.fit(dataset)
+dataset=scaler.transform(dataset)
 dataset=dataset.reshape((107,42,11))
 df_op=df_op.to_numpy()
 df_op=df_op.reshape((107,42,4))
@@ -98,7 +102,7 @@ valid_dataloader = DataLoader(val, batch_size = 32, shuffle = False)
 #print(train_data.shape,train_labels.shape)
 criterion = nn.MSELoss()
 
-def train_model(model, epochs=10, lr = 0.01):
+def train_model(model, epochs=100, lr = 0.01):
 	loss_values = []
 	val_loss_values = []
 	parameters = filter(lambda p: p.requires_grad, model.parameters())
