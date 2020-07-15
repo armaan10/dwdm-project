@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader, TensorDataset
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-"""
 df_ips=[]
 df_op=1
 path="/home/armaan/Downloads/Data_Set"
@@ -39,7 +38,7 @@ df_op=df_op.drop(['Time (sec)'],axis=1)
 ip_set=ip_set.drop(['Index'],axis=1)
 print(ip_set)
 #print(df_op)
-"""
+
 def sliding_windows(data,labels, seq_length):
     x = []
     y = []
@@ -84,7 +83,7 @@ class LSTMModel(nn.Module):
 		# out.size() --> 100, 10
 		return out
 #Define loss and optimiser
-"""device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model=LSTMModel(11,250,10,4)
 model.to(device)
 dataset=ip_set.to_numpy()
@@ -110,12 +109,12 @@ print("HERE")
 train=TensorDataset(torch.from_numpy(train_data),torch.from_numpy(train_labels))
 val=TensorDataset(torch.from_numpy(val_data),torch.from_numpy(val_labels))
 train_dataloader = DataLoader(train, batch_size = 32, shuffle = False)
-valid_dataloader = DataLoader(val, batch_size = 32, shuffle = False) 
+val_dataloader = DataLoader(val, batch_size = 32, shuffle = False) 
 
 
 print(train_data.shape,train_labels.shape)
 criterion = nn.MSELoss()
-"""
+
 def train_model(model, epochs=1000, lr = 0.01):
 	loss_values = []
 	val_loss_values = []
@@ -174,63 +173,4 @@ def validation_metrics(model, val_dataloader):
 		return running_loss/total
 
 ###############################################################################################################################
-if __name__ == "__main__":
-
-	##########################Input pipeline##################################
-	#Join CSV files to create feature vectors for training
-	df_ips=[]
-	df_op=1
-	path="/home/armaan/Downloads/Data_Set"
-	ind_df=np.zeros((4494,1))
-	for i in range(0,4494):
-		ind_df[i,0]=i
-	ind_df=pd.DataFrame({'Index':ind_df[:,0]})
-	for i in os.listdir(path):
-		if ".csv" in i:
-			if i=="Control_Link_Angles.csv":
-				df_op=pd.read_csv(os.path.join(path,i))
-			else:
-				df_ips.append(pd.read_csv(os.path.join(path,i)).drop(['Time (sec)'],axis=1).join(ind_df))
-
-			
-	ip_set=df_ips[0]
-	print(ind_df)
-
-
-	for i in range (len(df_ips)):
-		if i==0:
-			continue
-		ip_set=pd.merge(ip_set,df_ips[i],on='Index',how='inner')
-
-		#print (ip_set)
-	#ip_set=ip_set.drop(['Time (sec)'],axis=1)
-	df_op=df_op.drop(['Time (sec)'],axis=1)
-	ip_set=ip_set.drop(['Index'],axis=1)
-	#print(ip_set.iloc[0])
-	#print(df_op)
-
-	#Preprocess the data by scaling inputs
-	dataset = ip_set.to_numpy()
-	scaler = StandardScaler()
-	scaler.fit(dataset)
-	dataset = scaler.transform(dataset)
-	dataset = dataset.reshape((107,42,11))
-
-	df_op = df_op.to_numpy()
-	df_op = df_op.reshape((107,42,4))
-
-	train_data, test_data_temp, train_labels, test_labels_temp = train_test_split(dataset, df_op, test_size = 0.3)
-	test_data, val_data, test_labels, val_labels = train_test_split(test_data_temp, test_labels_temp, test_size = 0.25)
-
-	#Create pytorch dataloader objects
-	train=TensorDataset(torch.from_numpy(train_data),torch.from_numpy(train_labels))
-	val=TensorDataset(torch.from_numpy(val_data),torch.from_numpy(val_labels))
-	train_dataloader = DataLoader(train, batch_size = 32, shuffle = False)
-	val_dataloader = DataLoader(val, batch_size = 32, shuffle = False) 
-
-	print(train_data.shape,train_labels.shape)
-	#Define loss and pass model to device
-	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-	model = LSTMModel(11, 50, 20, 4).to(device)
-	criterion = nn.MSELoss()
-	train_model(model)
+train_model(model)
