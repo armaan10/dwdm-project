@@ -39,6 +39,18 @@ ip_set=ip_set.drop(['Index'],axis=1)
 print(ip_set)
 #print(df_op)
 
+def sliding_windows(data,labels, seq_length):
+    x = []
+    y = []
+
+    for i in range(len(data)-seq_length-1):
+        _x = data[i:(i+seq_length)]
+        _y = labels[i+seq_length]
+        x.append(_x)
+        y.append(_y)
+
+    return np.array(x),np.array(y)
+
 class LSTMModel(nn.Module):
 	def __init__(self, input_dim, hidden_dim, num_layers, output_dim):
 		super(LSTMModel, self).__init__()
@@ -61,8 +73,9 @@ class LSTMModel(nn.Module):
 		#h0=torch.reshape(h0,(self.num_layers,32,self.hidden_dim))
 		#print(h0.size())
 		lstm_out, (ht,ct) = self.lstm(x,(h0,c0))
-		#only last time step??        
-		out = self.fc(lstm_out) 
+		#only last time step??   
+		#print(lstm_out[:,-1,:].size(),lstm_out.size())     
+		out = self.fc(lstm_out[:,-1,:]) 
 		# out.size() --> 100, 10
 		return out
 #Define loss and optimiser
@@ -73,23 +86,19 @@ dataset=ip_set.to_numpy()
 scaler = StandardScaler()
 scaler.fit(dataset)
 dataset=scaler.transform(dataset)
+
 dataset=dataset.reshape((107,42,11))
 df_op=df_op.to_numpy()
 df_op=df_op.reshape((107,42,4))
-print(dataset.shape)
+#x,y=sliding_windows(dataset,df_op, 42)
+#print(x.shape,y.shape)
 
-"""
-val_data=ip_set[3145:3594].to_numpy()
-val_labels=df_op[3145:3594].to_numpy()
-test_data=ip_set[3594:].to_numpy()
-test_labels=df_op[3594:].to_numpy()
-train_labels=df_op.iloc[0:3145].to_numpy()
-train_data=ip_set.iloc[0:3145].to_numpy()
-"""
+#sliding window
+#train_data, test_data_temp, train_labels, test_label_temp = train_test_split(x,y,test_size = 0.3)
 train_data, test_data_temp, train_labels, test_label_temp = train_test_split(dataset,df_op,test_size = 0.3)
 
 test_data, val_data, test_labels, val_labels = train_test_split(test_data_temp,test_label_temp,test_size = 0.25)
-
+print("HERE")
                                                                               
 
 
@@ -99,10 +108,10 @@ train_dataloader = DataLoader(train, batch_size = 32, shuffle = False)
 valid_dataloader = DataLoader(val, batch_size = 32, shuffle = False) 
 
 
-#print(train_data.shape,train_labels.shape)
+print(train_data.shape,train_labels.shape)
 criterion = nn.MSELoss()
 
-def train_model(model, epochs=100, lr = 0.01):
+def train_model(model, epochs=1000, lr = 0.01):
 	loss_values = []
 	val_loss_values = []
 	parameters = filter(lambda p: p.requires_grad, model.parameters())
@@ -117,9 +126,13 @@ def train_model(model, epochs=100, lr = 0.01):
 			#print(x.size(),x.unsqueeze(2).size())
 			y_pred = model(x)
 			optimiser.zero_grad()
-			loss = criterion(y_pred, y)
+			#print(y_pred.size(), y.size())
+			loss = criterion(y_pred, y[:,-1,:])
+			#slidind window
+			#loss = criterion(y_pred, y)
 			loss.backward()
 			optimiser.step()
+			print(e)
 			running_loss = loss.item()*y.size(0)
 			total+=y.size(0)
 		epoch_loss = running_loss/total
@@ -127,13 +140,14 @@ def train_model(model, epochs=100, lr = 0.01):
 		val_loss = validation_metrics(model, valid_dataloader)
 		val_loss_values.append(val_loss)
 		if e%5 == 0:
-			print("Train mse: %.3f " %(epoch_loss))
-			#torch.save({
-			#	'epoch': e,
-			#	'model_state_dict': model.state_dict(),
-			#	'optimizer_state_dict': optimiser.state_dict(),
-			#	'loss': epoch_loss,
-			#}, '<path>'+str(e)+'.pth.tar')
+			print("Train mse: %.3f Val mse: %.3f  epoch : %.3f" %(epoch_loss,val_loss,e) )
+			
+	torch.save({
+				'epoch': 1000,
+				'model_state_dict': model.state_dict(),
+				'optimizer_state_dict': optimiser.state_dict(),
+				'loss': epoch_loss,
+			}, 'model1'+str(1000)+'.pth.tar')
 	plt.plot(loss_values)
 	plt.plot(val_loss_values, color = 'orange')
 	plt.show()
@@ -146,7 +160,9 @@ def validation_metrics(model, valid_dataloader):
 		x = x.float()
 		y = y.float()
 		y_pred = model(x)
-		loss = criterion(y_pred, y)
+		loss = criterion(y_pred, y[:,-1,:])
+		#slidind window
+		#loss = criterion(y_pred, y)
 		total+=y.size(0)
 		running_loss = loss.item()*y.size(0)
 		return running_loss/total
