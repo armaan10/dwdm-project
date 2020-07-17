@@ -84,22 +84,22 @@ class LSTMModel(nn.Module):
 		return out
 #Define loss and optimiser
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model=LSTMModel(11,250,10,4)
+model=LSTMModel(11,350,15,4)
 model.to(device)
 dataset=ip_set.to_numpy()
 scaler = StandardScaler()
 scaler.fit(dataset)
 dataset=scaler.transform(dataset)
 
-dataset=dataset.reshape((107,42,11))
+#dataset=dataset.reshape((107,42,11))
 df_op=df_op.to_numpy()
-df_op=df_op.reshape((107,42,4))
-#x,y=sliding_windows(dataset,df_op, 42)
+#df_op=df_op.reshape((107,42,4))
+x,y=sliding_windows(dataset,df_op, 42)
 #print(x.shape,y.shape)
 
 #sliding window
-#train_data, test_data_temp, train_labels, test_label_temp = train_test_split(x,y,test_size = 0.3)
-train_data, test_data_temp, train_labels, test_label_temp = train_test_split(dataset,df_op,test_size = 0.3)
+train_data, test_data_temp, train_labels, test_label_temp = train_test_split(x,y,test_size = 0.3)
+#train_data, test_data_temp, train_labels, test_label_temp = train_test_split(dataset,df_op,test_size = 0.3)
 
 test_data, val_data, test_labels, val_labels = train_test_split(test_data_temp,test_label_temp,test_size = 0.25)
 print("HERE")
@@ -130,12 +130,12 @@ def train_model(model, epochs=1000, lr = 0.01):
 			y_pred = model(x)
 			optimiser.zero_grad()
 			#print(y_pred.size(), y.size())
-			loss = criterion(y_pred, y[:,-1,:])
+			#loss = criterion(y_pred, y[:,-1,:])
 			#slidind window
-			#loss = criterion(y_pred, y)
+			loss = criterion(y_pred, y)
 			loss.backward()
 			optimiser.step()
-			print(e)
+			#print(e)
 			running_loss = loss.item()*y.size(0)
 			total+=y.size(0)
 		epoch_loss = running_loss/total
@@ -165,9 +165,9 @@ def validation_metrics(model, val_dataloader):
 		x = x.float()
 		y = y.float()
 		y_pred = model(x)
-		loss = criterion(y_pred, y[:,-1,:])
+		#loss = criterion(y_pred, y[:,-1,:])
 		#slidind window
-		#loss = criterion(y_pred, y)
+		loss = criterion(y_pred, y)
 		total+=y.size(0)
 		running_loss = loss.item()*y.size(0)
 		return running_loss/total
