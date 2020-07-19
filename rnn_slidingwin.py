@@ -4,13 +4,14 @@ import torch.nn.functional as F
 import pandas as pd
 import numpy as np
 import os
+from google.colab import files
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader, TensorDataset
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 df_ips=[]
 df_op=1
-path="/home/armaan/Downloads/Data_Set"
+path="./Data_Set"
 ind_df=np.zeros((4494,1))
 for i in range(0,4494):
 	ind_df[i,0]=i
@@ -36,7 +37,7 @@ for i in range (len(df_ips)):
 #ip_set=ip_set.drop(['Time (sec)'],axis=1)
 df_op=df_op.drop(['Time (sec)'],axis=1)
 ip_set=ip_set.drop(['Index'],axis=1)
-print(ip_set)
+#print(ip_set)
 #print(df_op)
 
 def sliding_windows(data,labels, seq_length):
@@ -84,38 +85,51 @@ class LSTMModel(nn.Module):
 		return out
 #Define loss and optimiser
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model=LSTMModel(11,350,15,4)
+
+model=LSTMModel(11,250,15,4)
 model.to(device)
 dataset=ip_set.to_numpy()
+if torch.cuda.is_available():
+	dataset=torch.from_numpy(dataset).cuda()
+	dataset=np.array(dataset)
 scaler = StandardScaler()
 scaler.fit(dataset)
 dataset=scaler.transform(dataset)
 
 #dataset=dataset.reshape((107,42,11))
-df_op=df_op.to_numpy()
+label_scaler=StandardScaler()
+
+df_op = df_op.to_numpy()
+if torch.cuda.is_available():
+	df_op=torch.from_numpy(df_op).cuda()
+	df_op=np.array(df_op)
+label_scaler.fit(df_op)
+df_op=label_scaler.transform(df_op)
 #df_op=df_op.reshape((107,42,4))
 x,y=sliding_windows(dataset,df_op, 42)
 #print(x.shape,y.shape)
 
-#sliding window
+	#sliding window
 train_data, test_data_temp, train_labels, test_label_temp = train_test_split(x,y,test_size = 0.3)
 #train_data, test_data_temp, train_labels, test_label_temp = train_test_split(dataset,df_op,test_size = 0.3)
 
 test_data, val_data, test_labels, val_labels = train_test_split(test_data_temp,test_label_temp,test_size = 0.25)
-print("HERE")
+#print("HERE")
                                                                               
 
 
 train=TensorDataset(torch.from_numpy(train_data),torch.from_numpy(train_labels))
 val=TensorDataset(torch.from_numpy(val_data),torch.from_numpy(val_labels))
+test=TensorDataset(torch.from_numpy(test_data),torch.from_numpy(test_labels))
 train_dataloader = DataLoader(train, batch_size = 32, shuffle = False)
-val_dataloader = DataLoader(val, batch_size = 32, shuffle = False) 
+val_dataloader = DataLoader(val, batch_size = val_data.shape[0], shuffle = False) 
+test_dataloader=DataLoader(test, batch_size = test_data.shape[0], shuffle = False)
 
 
-print(train_data.shape,train_labels.shape)
+#print(train_data.shape,train_labels.shape)
 criterion = nn.MSELoss()
 
-def train_model(model, epochs=1000, lr = 0.01):
+def train_model(model, epochs=200, lr = 0.01):
 	loss_values = []
 	val_loss_values = []
 	parameters = filter(lambda p: p.requires_grad, model.parameters())
@@ -145,17 +159,18 @@ def train_model(model, epochs=1000, lr = 0.01):
 		if e%5 == 0:
 
 			print("Train mse: %.3f Val mse: %.3f  epoch : %.3f" %(epoch_loss,val_loss,e) )
-			
-	torch.save({
+		if e%50==0:	
+			torch.save({
 				'epoch': 1000,
 				'model_state_dict': model.state_dict(),
 				'optimizer_state_dict': optimiser.state_dict(),
 				'loss': epoch_loss,
-			}, 'model1'+str(1000)+'.pth.tar')
+			}, 'model1'+str(e)+'.pth.tar')
 	plt.plot(loss_values)
 
 	plt.plot(val_loss_values, color = 'orange')
-	plt.show()
+	plt.savefig("loss.png")
+	files.('loss.png')
 		
 def validation_metrics(model, val_dataloader):
 	model.eval()
@@ -171,6 +186,27 @@ def validation_metrics(model, val_dataloader):
 		total+=y.size(0)
 		running_loss = loss.item()*y.size(0)
 		return running_loss/total
+def test_metrics(model,scaler, val_dataloader):
+	model.eval()
+	running_loss = 0.0
+	total = 0
+	for x, y, in val_dataloader:
+		x = x.float()
+		y = y.float()
+		y_pred = model(x)
+		print("Size of pred")
+		print(y_pred.size(),y.size())
+		y_pred=scaler.inverse_transform(y_pred.detach().numpy())
+		#print(y_pred)
+		loss = criterion(torch.from_numpy(y_pred), y)
+		#slidind window
+		#loss = criterion(y_pred, y)
+		total+=y.size(0)
+		running_loss = loss.item()*y.size(0)
+		return running_loss/total
 
 ###############################################################################################################################
+print("Set to Training")
 train_model(model)
+print("Set to testing")
+print(test_metrics(model,label_scaler, test_dataloader))
